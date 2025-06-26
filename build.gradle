@@ -7,6 +7,7 @@ group 'cn.gudqs7.idea.plugins'
 version '2.6.2'
 
 repositories {
+    maven { url 'https://maven.aliyun.com/repository/public' }
     mavenCentral()
 }
 dependencies {
@@ -20,6 +21,7 @@ dependencies {
 intellij {
 //    version '2021.3.3'
     version '2021.1.1'
+//    localPath = '/Applications/IntelliJ IDEA.app/Contents'  // macOS 示例路径
     updateSinceUntilBuild false
     plugins = ['java', 'org.nik.presentation-assistant:1.0.8']
 }

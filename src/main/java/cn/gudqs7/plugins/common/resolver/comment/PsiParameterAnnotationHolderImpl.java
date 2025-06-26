@@ -47,15 +47,16 @@ public class PsiParameterAnnotationHolderImpl extends AbstractFieldAnnotationHol
                     if (text.startsWith("/**") && text.endsWith("*/")) {
                         String[] lines = text.replaceAll("\r", "").split("\n");
                         for (String line : lines) {
+                            // 注释的开始和结束标记不需要处理
+                            if (line.contains("/**") || line.contains("*/")) {
+                                continue;
+                            }
                             line = processCommentLine(line);
                             if (line == null) {
                                 continue;
                             }
-
                             if (line.startsWith("@param")) {
                                 processParamTag(line, parameterName, commentTagMap, moreCommentTagMap, commentInfoTag);
-                            } else {
-                                commentInfoTag.appendValue(line, CommonConst.SPACE);
                             }
                         }
                     }
@@ -81,8 +82,9 @@ public class PsiParameterAnnotationHolderImpl extends AbstractFieldAnnotationHol
                                  Map<String, CommentTagEnum> commentTagMap,
                                  Map<String, MoreCommentTagEnum> moreCommentTagMap,
                                  CommentInfoTag commentInfoTag) {
-        // 去掉 "@param" 前缀
+        // 去掉 "@param" 前缀并修剪
         line = line.substring("@param".length()).trim();
+
         // 分割参数名和注释内容
         String[] paramInfoArray = line.split(" ", 2);
         if (paramInfoArray.length < 2) {
@@ -94,15 +96,16 @@ public class PsiParameterAnnotationHolderImpl extends AbstractFieldAnnotationHol
             return; // 不是当前参数，跳过
         }
 
-        // 获取注释内容部分
-        String tagContent = paramInfoArray[1];
-        // 分割注释内容中的标签
-        String[] tagArray = tagContent.split(" ");
+        // 获取注释内容并清理前后空格
+        String tagContent = paramInfoArray[1].trim();
+
+        // 安全拆分：支持多个空格、Tab 等空白符
+        String[] tagArray = tagContent.split("\\s+");
+
         for (String tagEntry : tagArray) {
             String tagName = tagEntry;
             String tagVal = null;
 
-            // 处理键值对形式的标签
             if (tagEntry.contains("=")) {
                 String[] tagKeyValue = tagEntry.split("=", 2);
                 tagName = tagKeyValue[0];
@@ -111,7 +114,6 @@ public class PsiParameterAnnotationHolderImpl extends AbstractFieldAnnotationHol
                 }
             }
 
-            // 根据标签类型处理
             if (commentTagMap.containsKey(tagName)) {
                 setCommentInfoByTag(commentInfoTag, tagName, tagVal);
             } else if (moreCommentTagMap.containsKey(tagName)) {
