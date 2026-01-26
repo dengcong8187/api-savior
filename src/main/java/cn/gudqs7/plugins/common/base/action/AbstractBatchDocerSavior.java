@@ -12,10 +12,11 @@ import cn.gudqs7.plugins.common.util.jetbrain.ExceptionUtil;
 import cn.gudqs7.plugins.common.util.jetbrain.IdeaApplicationUtil;
 import cn.gudqs7.plugins.common.util.structure.PackageInfoUtil;
 import cn.gudqs7.plugins.common.util.structure.PsiClassUtil;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.actionSystem.UpdateInBackground;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -37,7 +38,13 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * @author wq
  */
-public abstract class AbstractBatchDocerSavior extends AbstractAction implements UpdateInBackground {
+public abstract class AbstractBatchDocerSavior extends AbstractAction {
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        // 使用后台线程更新, 避免卡顿
+        return ActionUpdateThread.BGT;
+    }
 
     @Override
     public void update0(@NotNull AnActionEvent e) {
@@ -71,11 +78,15 @@ public abstract class AbstractBatchDocerSavior extends AbstractAction implements
             return;
         }
 
-        Object data = e.getDataContext().getData("psi.Element.array");
-        if (data instanceof PsiElement[]) {
-            PsiElement[] psiElements = (PsiElement[]) data;
-            if (psiElements.length > 1) {
-                return;
+        Editor editor = e.getDataContext().getData(CommonDataKeys.EDITOR);
+        PsiFile psiFile = e.getDataContext().getData(CommonDataKeys.PSI_FILE);
+
+        // 如果有文本选择（且长度 > 0），认为是“多元素”场景
+        if (editor != null && psiFile != null) {
+            var selectionModel = editor.getSelectionModel();
+            if (selectionModel.hasSelection()) {
+                // 用户框选了文本 → 可能跨多个元素
+                return; // 跳过
             }
         }
         notVisible(e);
@@ -184,6 +195,7 @@ public abstract class AbstractBatchDocerSavior extends AbstractAction implements
                     } catch (ProcessCanceledException canceledException) {
                         hasCancelAtomic.set(true);
                         handleCancelTask(docRootDirPath, projectFilePath);
+                        throw canceledException;
                     } catch (Throwable e1) {
                         // 此处 catch 需保留, 因为不会这里抛出异常, 不会到外面的 catch
                         hasCancelAtomic.set(true);
@@ -229,13 +241,20 @@ public abstract class AbstractBatchDocerSavior extends AbstractAction implements
         if (isFromArray) {
             return null;
         }
-        Object data = e.getDataContext().getData("psi.Element.array");
-        if (data instanceof PsiElement[]) {
-            PsiElement[] psiElements = (PsiElement[]) data;
-            if (psiElements.length > 1) {
-                PsiElement psiElement0 = psiElements[0];
-                return getFirstPsiFile(e, project, psiElement0, true);
+        // 1. 尝试从项目视图多选获取 VirtualFile[]
+        VirtualFile[] virtualFiles = e.getDataContext().getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
+        if (virtualFiles != null && virtualFiles.length > 1) {
+            // 取第一个文件
+            PsiFile firstFile = PsiManager.getInstance(project).findFile(virtualFiles[0]);
+            if (firstFile != null) {
+                return getFirstPsiFile(e, project, firstFile, true);
             }
+        }
+
+        // 2. 否则，尝试从编辑器获取单个 PsiElement
+        PsiElement element = e.getDataContext().getData(CommonDataKeys.PSI_ELEMENT);
+        if (element != null) {
+            return getFirstPsiFile(e, project, element, true);
         }
         return null;
     }
@@ -246,20 +265,37 @@ public abstract class AbstractBatchDocerSavior extends AbstractAction implements
             handlePsiDirectory(psiDirectory, psiClassList);
         }
 
-        Object data = e.getDataContext().getData("psi.Element.array");
-        if (data instanceof PsiElement[]) {
-            PsiElement[] psiElements = (PsiElement[]) data;
-            if (psiElements.length > 0) {
-                for (PsiElement element : psiElements) {
+        // 1. 尝试从 Project View 多选获取 VirtualFile[]
+        VirtualFile[] virtualFiles = e.getDataContext().getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
+        if (virtualFiles != null && virtualFiles.length > 0) {
+            PsiManager psiManager = PsiManager.getInstance(project);
+
+            for (VirtualFile vFile : virtualFiles) {
+                PsiElement element = psiManager.findFile(vFile);
+                if (element == null) continue;
+
+                // 如果是目录
+                if (vFile.isDirectory()) {
                     if (element instanceof PsiDirectory) {
-                        PsiDirectory directory = (PsiDirectory) element;
-                        handlePsiDirectory(directory, psiClassList);
-                    }
-                    if (element instanceof PsiClass) {
-                        PsiClass aClass = (PsiClass) element;
-                        psiClassList.add(aClass);
+                        handlePsiDirectory((PsiDirectory) element, psiClassList);
                     }
                 }
+                // 如果是文件，尝试解析为 PsiClass
+                else {
+                    PsiClass psiClass = getPsiClass(element);
+                    if (psiClass != null) {
+                        psiClassList.add(psiClass);
+                    }
+                }
+            }
+        }
+        // 2. （可选）回退到单个元素（如编辑器右键）
+        if (psiClassList.isEmpty()) {
+            PsiElement singleElement = e.getDataContext().getData(CommonDataKeys.PSI_ELEMENT);
+            if (singleElement instanceof PsiClass) {
+                psiClassList.add((PsiClass) singleElement);
+            } else if (singleElement instanceof PsiDirectory) {
+                handlePsiDirectory((PsiDirectory) singleElement, psiClassList);
             }
         }
         return filterPsiClassList(psiClassList, project);

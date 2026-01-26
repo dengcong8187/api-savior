@@ -22,18 +22,19 @@
 
         <projectService serviceImplementation="cn.gudqs7.plugins.search.MethodFilterConfiguration"/>
 
-        <intentionAction>
-            <className>cn.gudqs7.plugins.generate.getter.action.GetterGenerateAction</className>
-        </intentionAction>
-        <intentionAction>
-            <className>cn.gudqs7.plugins.generate.setter.action.SetterWithDefaultValGenerateAction</className>
-        </intentionAction>
-        <intentionAction>
-            <className>cn.gudqs7.plugins.generate.setter.action.SetterWithoutDefaultValGenerateAction</className>
-        </intentionAction>
-        <intentionAction>
-            <className>cn.gudqs7.plugins.generate.convert.action.ConvertGenerateAction</className>
-        </intentionAction>
+        <!--不再注册生成器因为ai工具能替代，其这里在新版idea中会报错，暂时不知道如何解决-->
+<!--        <intentionAction>-->
+<!--            <className>cn.gudqs7.plugins.generate.getter.action.GetterGenerateAction</className>-->
+<!--        </intentionAction>-->
+<!--        <intentionAction>-->
+<!--            <className>cn.gudqs7.plugins.generate.setter.action.SetterWithDefaultValGenerateAction</className>-->
+<!--        </intentionAction>-->
+<!--        <intentionAction>-->
+<!--            <className>cn.gudqs7.plugins.generate.setter.action.SetterWithoutDefaultValGenerateAction</className>-->
+<!--        </intentionAction>-->
+<!--        <intentionAction>-->
+<!--            <className>cn.gudqs7.plugins.generate.convert.action.ConvertGenerateAction</className>-->
+<!--        </intentionAction>-->
         <intentionAction>
             <className>cn.gudqs7.plugins.tools.GenerateQueryApiDeclarationAction</className>
         </intentionAction>

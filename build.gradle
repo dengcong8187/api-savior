@@ -1,32 +1,42 @@
 plugins {
-    id 'java'
-    id 'org.jetbrains.intellij' version '0.7.3'
+    id("java")
+    id("org.jetbrains.intellij.platform") version "2.10.5"
 }
 
-group 'cn.gudqs7.idea.plugins'
-version '2.6.2'
+group = "cn.gudqs7.idea.plugins"
+version = "2.6.3"
 
 repositories {
-    maven { url 'https://maven.aliyun.com/repository/public' }
+    maven { url = uri("https://maven.aliyun.com/repository/public") }
+
     mavenCentral()
+
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
+
 dependencies {
-    implementation 'org.freemarker:freemarker:2.3.31'
-    implementation 'com.youbenzi:MDTool:1.2.4'
-    implementation 'org.projectlombok:lombok:1.18.2'
-    annotationProcessor 'org.projectlombok:lombok:1.18.2'
+    // 插件依赖
+    intellijPlatform.intellijIdea("2025.1.7")
+    intellijPlatform.bundledPlugin('com.intellij.java')
+
+    implementation("org.freemarker:freemarker:2.3.31")
+    implementation("com.youbenzi:MDTool:1.2.4")
+    compileOnly("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
 }
 
-// See https://github.com/JetBrains/gradle-intellij-plugin/
-intellij {
-//    version '2021.3.3'
-    version '2021.1.1'
-//    localPath = '/Applications/IntelliJ IDEA.app/Contents'  // macOS 示例路径
-    updateSinceUntilBuild false
-    plugins = ['java', 'org.nik.presentation-assistant:1.0.8']
+intellijPlatform {
+    buildSearchableOptions = false
+
+    pluginConfiguration {
+        ideaVersion {
+            sinceBuild = '251'
+        }
+    }
 }
 
-// study from https://github.com/liuzhihang/doc-view/blob/master/build.gradle
 patchPluginXml {
     pluginDescription = file(descriptionFile).text
     changeNotes = file(changesFile).text
@@ -36,7 +46,7 @@ test {
 }
 
 publishPlugin {
-    channels = ''
+    channels = ['default'] // 或留空，或设为 ['default']
     token = System.getenv("JET_PUB_TOKEN")
 }
 

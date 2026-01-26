@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.psi.*;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -53,7 +54,7 @@ public class PsiDocumentUtil {
                 start = packageStatement.getTextLength() + packageStatement.getTextOffset();
             }
             String insertText = newImportText.toString();
-            if (org.apache.commons.lang.StringUtils.isNotBlank(insertText)) {
+            if (StringUtils.isNotBlank(insertText)) {
                 document.insertString(start, insertText);
                 commitAndSaveDocument(psiDocumentManager, document);
             }

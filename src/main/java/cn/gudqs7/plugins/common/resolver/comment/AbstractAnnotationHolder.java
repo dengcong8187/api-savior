@@ -115,10 +115,10 @@ public abstract class AbstractAnnotationHolder implements AnnotationHolder {
         if (StringUtils.isNotBlank(example)) {
             notes += "示例值为 " + example + CommonConst.BREAK_LINE;
         }
-        boolean hasLengthAnnotation = hasAnnotation(QNAME_OF_VALID_LENGTH);
+        boolean hasLengthAnnotation = hasAnnotation(QNAME_OF_VALID_LENGTH_HIBERNATE);
         if (hasLengthAnnotation) {
-            Integer min = getAnnotationValueByQname(QNAME_OF_VALID_LENGTH, "min");
-            Integer max = getAnnotationValueByQname(QNAME_OF_VALID_LENGTH, "max");
+            Integer min = getAnnotationValueByQname(QNAME_OF_VALID_LENGTH_HIBERNATE, "min");
+            Integer max = getAnnotationValueByQname(QNAME_OF_VALID_LENGTH_HIBERNATE, "max");
             if (min != null) {
                 notes += "最小长度为 " + min + CommonConst.BREAK_LINE;
             }
@@ -128,15 +128,21 @@ public abstract class AbstractAnnotationHolder implements AnnotationHolder {
         }
         Number min = null;
         Number max = null;
-        if (hasAnnotation(QNAME_OF_VALID_RANGE)) {
-            min = getAnnotationValueByQname(QNAME_OF_VALID_RANGE, "min");
-            max = getAnnotationValueByQname(QNAME_OF_VALID_RANGE, "max");
+        if (hasAnnotation(QNAME_OF_VALID_RANGE_HIBERNATE)) {
+            min = getAnnotationValueByQname(QNAME_OF_VALID_RANGE_HIBERNATE, "min");
+            max = getAnnotationValueByQname(QNAME_OF_VALID_RANGE_HIBERNATE, "max");
         }
-        if (hasAnnotation(QNAME_OF_VALID_MIN)) {
-            min = getAnnotationValueByQname(QNAME_OF_VALID_MIN, "value");
+        if (hasAnnotation(QNAME_OF_VALID_MIN_JAVAX)) {
+            min = getAnnotationValueByQname(QNAME_OF_VALID_MIN_JAVAX, "value");
         }
-        if (hasAnnotation(QNAME_OF_VALID_MAX)) {
-            max = getAnnotationValueByQname(QNAME_OF_VALID_MAX, "value");
+        if (hasAnnotation(QNAME_OF_VALID_MAX_JAVAX)) {
+            max = getAnnotationValueByQname(QNAME_OF_VALID_MAX_JAVAX, "value");
+        }
+        if (hasAnnotation(QNAME_OF_VALID_MIN_JAKARTA)) {
+            min = getAnnotationValueByQname(QNAME_OF_VALID_MIN_JAKARTA, "value");
+        }
+        if (hasAnnotation(QNAME_OF_VALID_MAX_JAKARTA)) {
+            max = getAnnotationValueByQname(QNAME_OF_VALID_MAX_JAKARTA, "value");
         }
         if (min != null) {
             notes += "最小值为 " + min + CommonConst.BREAK_LINE;
@@ -156,7 +162,17 @@ public abstract class AbstractAnnotationHolder implements AnnotationHolder {
      * @param commentInfo 原始信息
      */
     protected void overrideRequiredByValid(CommentInfo commentInfo) {
-        boolean hasRequiredAnnotation = hasAnyOneAnnotation(QNAME_OF_VALID_NOT_NULL, QNAME_OF_VALID_NOT_EMPTY, QNAME_OF_VALID_NOT_BLANK, QNAME_OF_VALID_NOT_EMPTY_JAVAX, QNAME_OF_VALID_NOT_BLANK_JAVAX);
+        boolean hasRequiredAnnotation = hasAnyOneAnnotation(
+                QNAME_OF_VALID_NOT_NULL_JAVAX,
+                QNAME_OF_VALID_NOT_EMPTY_JAVAX,
+                QNAME_OF_VALID_NOT_BLANK_JAVAX,
+                QNAME_OF_VALID_NOT_NULL_JAKARTA,
+                QNAME_OF_VALID_NOT_EMPTY_JAKARTA,
+                QNAME_OF_VALID_NOT_BLANK_JAKARTA,
+                QNAME_OF_VALID_NOT_NULL_HIBERNATE,
+                QNAME_OF_VALID_NOT_EMPTY_HIBERNATE,
+                QNAME_OF_VALID_NOT_BLANK_HIBERNATE
+                );
         if (hasRequiredAnnotation) {
             commentInfo.setRequired(true);
         }

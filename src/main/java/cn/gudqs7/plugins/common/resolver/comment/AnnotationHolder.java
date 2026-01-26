@@ -37,15 +37,28 @@ public interface AnnotationHolder {
     String QNAME_OF_MULTIPART_FILE = "org.springframework.web.multipart.MultipartFile";
     String QNAME_OF_JSON_FORMAT = "com.fasterxml.jackson.annotation.JsonFormat";
     String QNAME_OF_DATE_TIME_FORMAT = "org.springframework.format.annotation.DateTimeFormat";
-    String QNAME_OF_VALID_NOT_NULL = "javax.validation.constraints.NotNull";
-    String QNAME_OF_VALID_NOT_EMPTY = "org.hibernate.validator.constraints.NotEmpty";
-    String QNAME_OF_VALID_NOT_BLANK = "org.hibernate.validator.constraints.NotBlank";
+
+    // hibernate validator
+    String QNAME_OF_VALID_NOT_NULL_HIBERNATE = "org.hibernate.validator.constraints.NotNull";
+    String QNAME_OF_VALID_NOT_EMPTY_HIBERNATE = "org.hibernate.validator.constraints.NotEmpty";
+    String QNAME_OF_VALID_NOT_BLANK_HIBERNATE = "org.hibernate.validator.constraints.NotBlank";
+    String QNAME_OF_VALID_LENGTH_HIBERNATE = "org.hibernate.validator.constraints.Length";
+    String QNAME_OF_VALID_RANGE_HIBERNATE = "org.hibernate.validator.constraints.Range";
+
+    // javax (Java EE)
+    String QNAME_OF_VALID_NOT_NULL_JAVAX = "javax.validation.constraints.NotNull";
     String QNAME_OF_VALID_NOT_EMPTY_JAVAX = "javax.validation.constraints.NotEmpty";
     String QNAME_OF_VALID_NOT_BLANK_JAVAX = "javax.validation.constraints.NotBlank";
-    String QNAME_OF_VALID_LENGTH = "org.hibernate.validator.constraints.Length";
-    String QNAME_OF_VALID_MIN = "javax.validation.constraints.Min";
-    String QNAME_OF_VALID_MAX = "javax.validation.constraints.Max";
-    String QNAME_OF_VALID_RANGE = "org.hibernate.validator.constraints.Range";
+    String QNAME_OF_VALID_MIN_JAVAX = "javax.validation.constraints.Min";
+    String QNAME_OF_VALID_MAX_JAVAX = "javax.validation.constraints.Max";
+
+    // jakarta (Jakarta EE 9+)
+    String QNAME_OF_VALID_NOT_NULL_JAKARTA = "jakarta.validation.constraints.NotNull";
+    String QNAME_OF_VALID_NOT_EMPTY_JAKARTA = "jakarta.validation.constraints.NotEmpty";
+    String QNAME_OF_VALID_NOT_BLANK_JAKARTA = "jakarta.validation.constraints.NotBlank";
+    String QNAME_OF_VALID_MIN_JAKARTA = "jakarta.validation.constraints.Min";
+    String QNAME_OF_VALID_MAX_JAKARTA = "jakarta.validation.constraints.Max";
+    String QNAME_OF_VALID_LENGTH_JAKARTA = "jakarta.validation.constraints.Size";
 
     /**
      * 获取字段的 holder
