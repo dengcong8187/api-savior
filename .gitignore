@@ -92,3 +92,6 @@ fabric.properties
 .idea
 .intellijPlatform
 *.iml
+
+## 忽略java版本控制文件
+/.java-version
