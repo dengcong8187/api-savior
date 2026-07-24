@@ -23,6 +23,7 @@ dependencies {
 
     implementation("org.freemarker:freemarker:2.3.31")
     implementation("com.youbenzi:MDTool:1.2.4")
+    implementation("commons-collections:commons-collections:3.2.2")
     compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok:1.18.42")
 }
