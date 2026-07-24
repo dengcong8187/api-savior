@@ -17,6 +17,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
@@ -193,6 +194,8 @@ public class ApiSearchContributor implements WeightedSearchEverywhereContributor
                     }
                 }
             }
+        } catch (ProcessCanceledException e) {
+            throw e;
         } catch (Throwable ex) {
             ExceptionUtil.handleException(ex);
         }
