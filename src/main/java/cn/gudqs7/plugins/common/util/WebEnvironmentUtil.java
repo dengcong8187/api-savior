@@ -1,6 +1,7 @@
 package cn.gudqs7.plugins.common.util;
 
 import cn.gudqs7.plugins.common.enums.PluginSettingEnum;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
@@ -114,6 +115,8 @@ public class WebEnvironmentUtil {
                             backPort = port;
                         }
                     }
+                } catch (ProcessCanceledException e) {
+                    throw e;
                 } catch (Exception ignored) {
                 }
             }
@@ -153,6 +156,8 @@ public class WebEnvironmentUtil {
                             }
                         }
                     }
+                } catch (ProcessCanceledException e) {
+                    throw e;
                 } catch (Exception ignored) {
                 }
             }

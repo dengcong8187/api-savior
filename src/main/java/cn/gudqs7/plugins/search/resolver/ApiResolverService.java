@@ -6,6 +6,7 @@ import cn.gudqs7.plugins.common.resolver.comment.AnnotationHolder;
 import cn.gudqs7.plugins.common.util.jetbrain.ExceptionUtil;
 import cn.gudqs7.plugins.common.util.structure.PsiAnnotationUtil;
 import cn.gudqs7.plugins.search.pojo.RequestMappingAnnotationInfo;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.java.stubs.index.JavaAnnotationIndex;
@@ -52,6 +53,8 @@ public class ApiResolverService {
         for (PsiClass psiClass : psiClassMap.values()) {
             try {
                 navigationItemList.addAll(getServiceItemList(psiClass));
+            } catch (ProcessCanceledException e) {
+                throw e;
             } catch (Exception e) {
                 String classQname = psiClass.getQualifiedName();
                 ExceptionUtil.logException(e, String.format("扫描接口时出错, 接口类全限定名为: %s; 错误信息为: %s", classQname, e.getMessage()));
@@ -88,6 +91,8 @@ public class ApiResolverService {
                 methodPathList.addAll(getMethodList0(psiMethod, AnnotationHolder.QNAME_OF_POST_MAPPING, HttpMethod.POST, psiClass));
                 methodPathList.addAll(getMethodList0(psiMethod, AnnotationHolder.QNAME_OF_PUT_MAPPING, HttpMethod.PUT, psiClass));
                 methodPathList.addAll(getMethodList0(psiMethod, AnnotationHolder.QNAME_OF_DELETE_MAPPING, HttpMethod.DELETE, psiClass));
+            } catch (ProcessCanceledException e) {
+                throw e;
             } catch (Exception e) {
                 String methodName = psiMethod.getName();
                 String methodQname = classQname + "#" + methodName;

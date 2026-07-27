@@ -7,6 +7,7 @@ import cn.gudqs7.plugins.common.pojo.resolver.CommentInfo;
 import cn.gudqs7.plugins.common.pojo.resolver.StructureAndCommentInfo;
 import cn.gudqs7.plugins.common.util.jetbrain.ExceptionUtil;
 import cn.gudqs7.plugins.common.util.structure.BaseTypeUtil;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.psi.PsiType;
 
 import java.util.ArrayList;
@@ -195,6 +196,8 @@ public abstract class AbstractMapReader<B> extends AbstractReader<Map<String, Ob
                 String qName = psiType.getCanonicalText();
                 return BaseTypeUtil.getInterfaceDefaultVal(qName, commentInfo);
             }
+        } catch (ProcessCanceledException e) {
+            throw e;
         } catch (Exception e) {
             String fieldName = structureAndCommentInfo.getFieldName();
             String example = commentInfo.getExample("[未设置]");
