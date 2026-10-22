@@ -299,7 +299,7 @@ public class StructureAndCommentResolver implements IStructureAndCommentResolver
             PsiArrayType psiArrayType = (PsiArrayType) psiFieldType;
             PsiType componentType = psiArrayType.getComponentType();
             String newTypeNameFormat = String.format(typeNameFormat, "%s[]");
-            return resolveByPsiType0(parent, FieldType.ARRAY.getType(), fieldName, componentType, commentInfo, newTypeNameFormat, fieldPrefix, level);
+            return addContainerTypeCode(resolveByPsiType0(parent, FieldType.ARRAY.getType(), fieldName, componentType, commentInfo, newTypeNameFormat, fieldPrefix, level), FieldType.ARRAY);
         }
 
         boolean isReferenceType = psiFieldType instanceof PsiClassReferenceType;
@@ -374,7 +374,7 @@ public class StructureAndCommentResolver implements IStructureAndCommentResolver
                     }
                     keyTypeName = keyType.getPresentableText();
                     String newTypeNameFormat = String.format(typeNameFormat, "Map<" + keyTypeName + ", %s>");
-                    return resolveByPsiType0(parent, FieldType.MAP.getType(), fieldName, valueType, commentInfo, newTypeNameFormat, fieldPrefix, level);
+                    return addContainerTypeCode(resolveByPsiType0(parent, FieldType.MAP.getType(), fieldName, valueType, commentInfo, newTypeNameFormat, fieldPrefix, level), FieldType.MAP);
                 } else {
                     return structureAndCommentInfo;
                 }
@@ -438,10 +438,20 @@ public class StructureAndCommentResolver implements IStructureAndCommentResolver
         if (parameters.length > 0) {
             PsiType elementType = parameters[0];
             String newTypeNameFormat = String.format(typeNameFormat, format);
-            return resolveByPsiType0(parent, fieldType.getType(), fieldName, elementType, commentInfo, newTypeNameFormat, fieldPrefix, level);
+            return addContainerTypeCode(resolveByPsiType0(parent, fieldType.getType(), fieldName, elementType, commentInfo, newTypeNameFormat, fieldPrefix, level), fieldType);
         } else {
             return structureAndCommentInfo;
         }
+    }
+
+    /**
+     * 记录容器嵌套层级, 便于生成示例值时按层级逐层包裹
+     */
+    private StructureAndCommentInfo addContainerTypeCode(StructureAndCommentInfo structureAndCommentInfo, FieldType fieldType) {
+        if (structureAndCommentInfo != null) {
+            structureAndCommentInfo.addContainerTypeCode(fieldType.getType());
+        }
+        return structureAndCommentInfo;
     }
 
     private boolean handleHidden(String fieldName, PsiType psiFieldType, boolean oldVal) {

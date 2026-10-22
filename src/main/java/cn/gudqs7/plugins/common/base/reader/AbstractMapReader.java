@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * @author WQ
@@ -80,26 +81,15 @@ public abstract class AbstractMapReader<B> extends AbstractReader<Map<String, Ob
             // 这里判断是否需要覆盖父节点 (leafData) 的数据(因为 readLeaf 时不会直接返回数据)
             if (fieldName != null) {
                 if (leafData.containsKey(fieldName)) {
-                    Object val = leafData.get(fieldName);
-                    if (val instanceof List) {
-                        List<Object> list = (List<Object>) val;
-                        ArrayList<Object> copyList = new ArrayList<>(list);
-                        list.clear();
-                        for (Object ignored : copyList) {
-                            list.add(loopObj);
-                        }
-                        leafData.put(fieldName, list);
-                    } else if (val instanceof Map) {
-                        Map<String, Object> valMap = (Map<String, Object>) val;
-                        valMap.replaceAll((k, v) -> loopObj);
-                        leafData.put(fieldName, valMap);
+                    List<Integer> containerTypeCodes = structureAndCommentInfo.getContainerTypeCodes();
+                    if (containerTypeCodes != null && !containerTypeCodes.isEmpty()) {
+                        // 容器(如 Map/List)包裹对象时, 需按容器层级重新包裹, 对象数据放入最内层
+                        leafData.put(fieldName, buildContainerVal(containerTypeCodes, 0, () -> loopObj));
+                    } else if (needBreakUpParam) {
+                        leafData.remove(fieldName);
+                        leafData.putAll(loopObj);
                     } else {
-                        if (needBreakUpParam) {
-                            leafData.remove(fieldName);
-                            leafData.putAll(loopObj);
-                        } else {
-                            leafData.put(fieldName, loopObj);
-                        }
+                        leafData.put(fieldName, loopObj);
                     }
                 } else {
                     map.put(fieldName, loopObj);
@@ -136,37 +126,44 @@ public abstract class AbstractMapReader<B> extends AbstractReader<Map<String, Ob
         String fieldName = structureAndCommentInfo.getFieldName();
         if (fieldName != null) {
             Map<String, Object> map = new LinkedHashMap<>();
-            Integer fieldTypeCode = structureAndCommentInfo.getFieldTypeCode();
-            switch (FieldType.of(fieldTypeCode)) {
-                case BASE:
-                case FILE:
-                    map.put(fieldName, getJsonMapVal(structureAndCommentInfo, data, parentData));
-                    break;
-                case POJO:
-                    // 不管 put 什么, 之后都会在 afterLoop 中覆盖掉, 故直接放 null
-                    map.put(fieldName, null);
-                    break;
-                case MAP:
-                    Map<String, Object> valMap = new LinkedHashMap<>(4);
-                    valMap.put("key1", getJsonMapVal(structureAndCommentInfo, data, parentData));
-                    valMap.put("key2", getJsonMapVal(structureAndCommentInfo, data, parentData));
-                    map.put(fieldName, valMap);
-                    break;
-                case ARRAY:
-                case LIST:
-                case SET:
-                case COLLECTION:
-                    List<Object> list = new ArrayList<>();
-                    list.add(getJsonMapVal(structureAndCommentInfo, data, parentData));
-                    list.add(getJsonMapVal(structureAndCommentInfo, data, parentData));
-                    map.put(fieldName, list);
-                    break;
-                default:
-                    break;
-            }
+            // 非叶子节点(如容器内为用户自定义类)的内层值, 之后会在 afterLoop 中覆盖, 故直接放 null
+            Supplier<Object> innerVal = () -> structureAndCommentInfo.isLeaf() ? getJsonMapVal(structureAndCommentInfo, data, parentData) : null;
+            map.put(fieldName, buildContainerVal(structureAndCommentInfo.getContainerTypeCodes(), 0, innerVal));
             return map;
         }
         return null;
+    }
+
+    /**
+     * 按容器嵌套层级(由外向内)逐层包裹字段值
+     * 如 Map&lt;String, List&lt;String&gt;&gt; 的层级为 [Map, List], 结果为 {"key1":["val","val"],"key2":["val","val"]}
+     *
+     * @param containerTypeCodes 由外至内的容器类型
+     * @param index              当前层级
+     * @param innerVal           最内层的值(每个元素独立获取, 以保证示例值互不相同)
+     * @return 包裹后的值
+     */
+    private Object buildContainerVal(List<Integer> containerTypeCodes, int index, Supplier<Object> innerVal) {
+        if (containerTypeCodes == null || index >= containerTypeCodes.size()) {
+            return innerVal.get();
+        }
+        switch (FieldType.of(containerTypeCodes.get(index))) {
+            case MAP:
+                Map<String, Object> valMap = new LinkedHashMap<>(4);
+                valMap.put("key1", buildContainerVal(containerTypeCodes, index + 1, innerVal));
+                valMap.put("key2", buildContainerVal(containerTypeCodes, index + 1, innerVal));
+                return valMap;
+            case ARRAY:
+            case LIST:
+            case SET:
+            case COLLECTION:
+                List<Object> list = new ArrayList<>();
+                list.add(buildContainerVal(containerTypeCodes, index + 1, innerVal));
+                list.add(buildContainerVal(containerTypeCodes, index + 1, innerVal));
+                return list;
+            default:
+                return buildContainerVal(containerTypeCodes, index + 1, innerVal);
+        }
     }
 
     /**

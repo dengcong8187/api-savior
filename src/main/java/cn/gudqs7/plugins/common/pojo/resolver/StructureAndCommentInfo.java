@@ -5,8 +5,10 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -94,6 +96,16 @@ public class StructureAndCommentInfo {
      * 原始类型
      */
     private Integer originalFieldTypeCode = 1;
+
+    /**
+     * 由外至内的容器嵌套类型(3:数组 4:List 5:Map 8:Set 9:Collection)
+     * 如 Map<String, List<String>> 为 [5, 4]; 非容器类型为空
+     */
+    private List<Integer> containerTypeCodes = new ArrayList<>(4);
+
+    public void addContainerTypeCode(Integer fieldTypeCode) {
+        containerTypeCodes.add(0, fieldTypeCode);
+    }
 
     /**
      * 类型信息
@@ -202,6 +214,7 @@ public class StructureAndCommentInfo {
                 ", type=" + type +
                 ", fieldTypeCode=" + fieldTypeCode +
                 ", originalFieldTypeCode=" + originalFieldTypeCode +
+                ", containerTypeCodes=" + containerTypeCodes +
                 ", psiType=" + psiType +
                 '}';
     }

@@ -21,8 +21,9 @@ import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.ThrowableComputable;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.codeStyle.MinusculeMatcher;
 import com.intellij.psi.codeStyle.NameUtil;
 import com.intellij.ui.ColoredListCellRenderer;
@@ -46,10 +47,17 @@ import java.util.*;
  */
 public class ApiSearchContributor implements WeightedSearchEverywhereContributor<ApiNavigationItem> {
 
+    /**
+     * 命中 url 的结果排在只命中方法描述的结果之前
+     */
+    private static final int URL_MATCH_BONUS = 1000;
+
+    private static final Comparator<FoundItemDescriptor<ApiNavigationItem>> BY_WEIGHT_DESC =
+            Comparator.<FoundItemDescriptor<ApiNavigationItem>>comparingInt(FoundItemDescriptor::getWeight).reversed();
+
     private final AnActionEvent actionEvent;
     private final Project myProject;
     private PersistentSearchEverywhereContributorFilter<HttpMethod> myFilter;
-    private List<ApiNavigationItem> navItemList;
 
     public ApiSearchContributor(@NotNull AnActionEvent event) {
         this.actionEvent = event;
@@ -88,7 +96,13 @@ public class ApiSearchContributor implements WeightedSearchEverywhereContributor
 
     @Override
     public boolean processSelectedItem(@NotNull ApiNavigationItem selected, int modifiers, @NotNull String searchText) {
-        PsiNavigateUtil.navigate(selected.getPsiElement());
+        // 来自磁盘索引的条目需要按文件偏移恢复 PSI, 故先取元素再导航
+        PsiElement psiElement = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiElement>) selected::getPsiElement);
+        if (psiElement == null) {
+            return false;
+        }
+        PsiNavigateUtil.navigate(psiElement);
         return true;
     }
 
@@ -166,6 +180,13 @@ public class ApiSearchContributor implements WeightedSearchEverywhereContributor
                 return;
             }
 
+            // 结果由 ApiResolverService 缓存(内存 + 磁盘), 命中时不需要重新解析 PSI
+            List<ApiNavigationItem> navItemList = ApiResolverService.getInstance(myProject)
+                    .getApiNavigationItemList(progressIndicator);
+            if (navItemList.isEmpty()) {
+                return;
+            }
+
             MinusculeMatcher matcher = NameUtil.buildMatcher("*" + pattern + "*", NameUtil.MatchingCaseSensitivity.NONE);
             Set<HttpMethod> httpMethodSet = new HashSet<>();
             if (myFilter == null) {
@@ -175,23 +196,22 @@ public class ApiSearchContributor implements WeightedSearchEverywhereContributor
             }
             boolean selectAll = httpMethodSet.size() == HttpMethod.values().length;
 
-            // 从ALL -> URL Tab或快捷键进入时列表为空
-            if (navItemList == null) {
-                // 必须从read线程访问，耗时不能过长
-                navItemList = ApplicationManager.getApplication().runReadAction(
-                        (ThrowableComputable<List<ApiNavigationItem>, Throwable>) () ->
-                                ApiResolverService.getInstance(myProject).getApiNavigationItemList()
-                );
+            List<FoundItemDescriptor<ApiNavigationItem>> foundItems = new ArrayList<>();
+            for (ApiNavigationItem restItem : navItemList) {
+                // 用户继续输入时尽快退出, 不再跑完整个列表
+                progressIndicator.checkCanceled();
+                if (!selectAll && !httpMethodSet.contains(restItem.getHttpMethod())) {
+                    continue;
+                }
+                int weight = getMatchWeight(matcher, restItem);
+                if (weight > 0) {
+                    foundItems.add(new FoundItemDescriptor<>(restItem, weight));
+                }
             }
-            if (navItemList != null) {
-                for (ApiNavigationItem restItem : navItemList) {
-                    if (selectAll || httpMethodSet.contains(restItem.getHttpMethod())) {
-                        if (matcher.matches(restItem.getUrl()) || matcher.matches(restItem.getMethodPathInfo().getMethodDesc())) {
-                            if (!consumer.process(new FoundItemDescriptor<>(restItem, 0))) {
-                                return;
-                            }
-                        }
-                    }
+            foundItems.sort(BY_WEIGHT_DESC);
+            for (FoundItemDescriptor<ApiNavigationItem> foundItem : foundItems) {
+                if (!consumer.process(foundItem)) {
+                    return;
                 }
             }
         } catch (ProcessCanceledException e) {
@@ -199,6 +219,18 @@ public class ApiSearchContributor implements WeightedSearchEverywhereContributor
         } catch (Throwable ex) {
             ExceptionUtil.handleException(ex);
         }
+    }
+
+    private static int getMatchWeight(@NotNull MinusculeMatcher matcher, @NotNull ApiNavigationItem item) {
+        String url = item.getUrl();
+        if (matcher.matches(url)) {
+            return Math.max(matcher.matchingDegree(url), 1) + URL_MATCH_BONUS;
+        }
+        String methodDesc = item.getMethodPathInfo().getMethodDesc();
+        if (StringUtil.isNotEmpty(methodDesc) && matcher.matches(methodDesc)) {
+            return Math.max(matcher.matchingDegree(methodDesc), 1);
+        }
+        return -1;
     }
 
     @Override

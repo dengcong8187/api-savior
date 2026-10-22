@@ -46,6 +46,10 @@
 
         <searchEverywhereContributor implementation="cn.gudqs7.plugins.search.ApiSearchContributorFactory"/>
 
+        <projectConfigurable parentId="other" id="cn.gudqs.api.savior.settings"
+                             displayName="Api Savior"
+                             provider="cn.gudqs7.plugins.search.settings.ApiSaviorConfigurableProvider"/>
+
         <errorHandler implementation="cn.gudqs7.plugins.diagnostic.SaviorIssueSubmitter"/>
     </extensions>
 

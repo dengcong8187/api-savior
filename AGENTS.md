@@ -70,7 +70,9 @@ Api Savior 是一个 IntelliJ IDEA 插件，功能包括：
 ### `search/` — Search Everywhere 集成
 - `ApiSearchContributor` / `ApiSearchContributorFactory` — 提供 Search Everywhere 的 "Api" Tab
 - `GotoApiAction` — Ctrl+\ 快捷键跳转
-- `ApiResolverService` — 扫描项目中的 API 并构建索引
+- `ApiResolverService` — 扫描项目中的 API 并构建索引，结果缓存在内存（以 PSI 修改计数为版本）与磁盘
+- `index/` — 接口索引的磁盘快照（`ApiIndexSnapshot`），按源文件分组并记录文件时间戳，冷启动时只重建文件变化的类；快照落在 IDEA 系统缓存目录的 `api-savior-index/` 下，不写入项目目录
+- `settings/` — Api Savior 设置页（Settings → Other Settings），展示索引文件位置、大小与内存缓存统计，并提供「重建索引 / 清理索引缓存」入口
 
 ### `diagnostic/` — 错误上报
 - `SaviorIssueSubmitter` — 接入 IDEA 错误处理组件，插件报错时可一键上报到 GitHub Issue
